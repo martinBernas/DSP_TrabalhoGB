@@ -9,7 +9,41 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-im = cv2.imread('Image4.jpeg',0)
+def detecta_1a_borda(area_insp,corte):
+    area_rotada = area_insp.transpose()
+    num_linha = int(len(area_rotada[0])/2);
+    linha_central = area_insp[num_linha];
+    vetor_linha_central = np.arange(len(linha_central))
+    pos_ant = linha_central[0]
+    retorno = (num_linha,0)
+
+    for i in vetor_linha_central:
+        valor = int(linha_central[i]) - int(pos_ant)
+        if valor >= corte:
+            retorno = (num_linha,i)
+            return retorno
+        pos_ant = linha_central[i]
+
+def detecta_angulo(area_insp,corte):
+    diff = 200
+    largura_area_insp = len(area_insp[0])
+    altura_area_insp = len(area_insp.transpose()[0])
+    area_sup = area_insp[diff:altura_area_insp,0:largura_area_insp]
+    area_inf = area_insp[0:(altura_area_insp-diff),0:largura_area_insp]
+    ponto_sup = detecta_1a_borda(area_sup,corte)
+    ponto_sup_real = (ponto_sup[0],ponto_sup[1])
+    
+    ponto_inf = detecta_1a_borda(area_inf,corte)
+    ponto_inf_real = (ponto_inf[0]+diff,ponto_inf[1])
+    
+    cat_op = ponto_inf_real[1] - ponto_sup_real[1]
+    cat_adj = ponto_inf_real[0]-ponto_sup_real[0]
+    angulo = ((np.arctan(cat_op/cat_adj))*180)/np.pi
+    angulo - 90
+    return angulo
+    
+
+im = cv2.imread('Image9.jpeg',0)
 height, width = im.shape[:2]
 im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
 
@@ -25,15 +59,15 @@ end_point = (240,230)
 color = 255
 thickness = 2
 # Draw a rectangle with blue line borders of thickness of 2 px
-im = cv2.rectangle(im, start_point, end_point, color, thickness)
+#im = cv2.rectangle(im, start_point, end_point, color, thickness)
 comprimido1 = im[110:230,170:240]
 
 start_point = (170, 470)
 end_point = (240,600)
-color = 255
+color = (255,0,0)
 thickness = 2
 # Draw a rectangle with blue line borders of thickness of 2 px
-im = cv2.rectangle(im, start_point, end_point, color, thickness)
+#im = cv2.rectangle(im, start_point, end_point, color, thickness)
 comprimido2 = im[470:600,170:240]
 vetor_xcm1 = np.arange(len(comprimido1[0]))
 vetor_ycm1 = np.arange(len((comprimido1.transpose())[0]))
@@ -55,49 +89,64 @@ for x in vetor_xcm2:
 print("Comprimido2 =")
 print(contador_cm2)
 
+hist_fullcm1 = cv2.calcHist([comprimido1],[0],None,[256],[0,256])
+hist_fullcm2 = cv2.calcHist([comprimido2],[0],None,[256],[0,256])
+
+area_angulo = im[25:775, 25:300]
+
+angulo = detecta_angulo(area_angulo,20)
+
+rows,cols = im.shape
+M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),angulo,1)
+rotacao_corrigida = cv2.warpAffine(im,M,(cols,rows))
 
 
+area_borda_lateral = rotacao_corrigida[25:775, 25:300]
+
+borda_lateral = detecta_1a_borda(area_borda_lateral,20)
+real_borda_lateral = (borda_lateral[0]+25,borda_lateral[1]+25)
+rotacao_corrigida[real_borda_lateral[0],real_borda_lateral[1]] = 255
 
 
+area_borda_sup = rotacao_corrigida[25:350,25:575].transpose()
+borda_sup = detecta_1a_borda(area_borda_sup,20)
+real_borda_sup = ( borda_sup[1]+25 , borda_sup[0]+25 )
+rotacao_corrigida[real_borda_sup[0],real_borda_sup[1]] = 255
 
-area_insp = im[25:300, 25:575]
+canto_ref = (real_borda_sup[0],real_borda_lateral[1]) # Referencia Sample = 95,155
+rotacao_corrigida[canto_ref[0],canto_ref[1]] = 255
 
-linha1 = area_insp.transpose()[287]
-vetor_linha1 = np.arange(len(linha1))
-derivada_linha1 = np.zeros(len(linha1),int)
+ajusteX = canto_ref[0]-95
+ajusteY = canto_ref[1]-155 
 
-pos_ant = linha1[0]
+start_point = (170+ajusteY, 120+ajusteX)
+end_point = (240+ajusteY,230+ajusteX)
+color = 255
+thickness = 2
+# Draw a rectangle with blue line borders of thickness of 2 px
+rotacao_corrigida = cv2.rectangle(rotacao_corrigida, start_point, end_point, color, thickness)
 
-for i in vetor_linha1:
-    valor = int(linha1[i]) - int(pos_ant)
-    derivada_linha1[i] = valor
-    pos_ant = linha1[i]
-    
-area_rotada = area_insp.transpose()
 
-     
-    
-
- 
 
 
 
 plt.subplot(2,1,1)
-plt.plot(vetor_linha1,linha1,'r')
-plt.title('LinhaCentral')
-
-
-
+plt.plot(hist_fullcm1)
+plt.title('HistogramaCM1')
 plt.subplot(2,1,2)
-plt.plot(vetor_linha1,derivada_linha1,'r')
-plt.title('Derivada LinhaCentral')
+plt.plot(hist_fullcm2)
+plt.title('HistogramaCM2')
+
+
+
+
 
 
 plt.show()
 cv2.imshow("Sample", im)
-cv2.imshow("Area", area_insp)
-cv2.imshow("AreaRotada", area_rotada)
-cv2.imshow("Comprimido1", comprimido1)
+cv2.imshow("Area_borda_sup", area_borda_sup)
 cv2.imshow("Comprimido2", comprimido2)
+cv2.imshow("Rotacao corrigida", rotacao_corrigida)
+
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
