@@ -16,6 +16,8 @@ im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
 im2 = cv2.imread('Image4.jpeg')
 height, width = im2.shape[:2]
 im2 = cv2.resize(im2,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
+vermelho = (0,0,255);
+verde = (0,255,0);
 
 
 #imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
@@ -43,10 +45,10 @@ for x in vetor_xcm1:
 print("Comprimido1 =")
 print(contador_cm1)
 if (contador_cm1 > 2000):
-    color = (127,255,0)
+    color = verde
     im2 = cv2.rectangle(im2, start_point, end_point, color, thickness)
 else:
-    color = (255,69,0)
+    color = vermelho
     im2 = cv2.rectangle(im2, start_point, end_point, color, thickness)
     
 ########################
@@ -119,10 +121,10 @@ for x in vetor_xcm1:
 print("Comprimido8 =")
 print(contador_cm1)
 if (contador_cm1 > 2000):
-    color = (127,255,0)
+    color = verde
     im2 = cv2.rectangle(im2, start_point, end_point, color, thickness)
 else:
-    color = (220,20,60)
+    color = vermelho
     im2 = cv2.rectangle(im2, start_point, end_point, color, thickness)
 
 ################################

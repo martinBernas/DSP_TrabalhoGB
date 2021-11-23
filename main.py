@@ -23,6 +23,7 @@ def detecta_1a_borda(area_insp,corte):
             retorno = (num_linha,i)
             return retorno
         pos_ant = linha_central[i]
+        
 
 def detecta_angulo(area_insp,corte):
     diff = 200
@@ -41,12 +42,34 @@ def detecta_angulo(area_insp,corte):
     angulo = ((np.arctan(cat_op/cat_adj))*180)/np.pi
     angulo - 90
     return angulo
-    
 
-im = cv2.imread('Image9.jpeg',0)
+def desenha_retangulo(imagem, start_point, end_point, color):
+    thickness = 2
+    retorno = cv2.rectangle(imagem, start_point, end_point, color, thickness)
+    return retorno
+
+def verificar_comprimido(comprimido,contagem_minima,limiar_cor):
+    vetor_x = np.arange(len(comprimido[0]))
+    vetor_y = np.arange(len((comprimido.transpose())[0]))
+    contador = 0
+    for x in vetor_x:
+        for y in vetor_y:
+            if comprimido[y,x] > limiar_cor:
+                contador = contador+1
+            if contador > contagem_minima:
+                return 1
+            
+    return 0
+
+vermelho = (0,0,255);
+verde = (0,255,0);
+arquivo = 'Image6.jpeg'
+im = cv2.imread(arquivo,0)
+im_color = cv2.imread(arquivo)
+
 height, width = im.shape[:2]
 im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
-
+im_color = cv2.resize(im_color,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
 
 #imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 #ret,thresh = cv2.threshold(imgray,127,255,0)
@@ -54,43 +77,8 @@ im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
 
 #img = cv2.drawContours(im, contours, -1, (0,255,0), 3)
 
-start_point = (170, 110)
-end_point = (240,230)
-color = 255
-thickness = 2
-# Draw a rectangle with blue line borders of thickness of 2 px
-#im = cv2.rectangle(im, start_point, end_point, color, thickness)
-comprimido1 = im[110:230,170:240]
-
-start_point = (170, 470)
-end_point = (240,600)
-color = (255,0,0)
-thickness = 2
-# Draw a rectangle with blue line borders of thickness of 2 px
-#im = cv2.rectangle(im, start_point, end_point, color, thickness)
-comprimido2 = im[470:600,170:240]
-vetor_xcm1 = np.arange(len(comprimido1[0]))
-vetor_ycm1 = np.arange(len((comprimido1.transpose())[0]))
-contador_cm1 = 0
-for x in vetor_xcm1:
-    for y in vetor_ycm1:
-        if comprimido1[y,x] > 180:
-            contador_cm1 = contador_cm1+1
-print("Comprimido1 =")
-print(contador_cm1)
-
-vetor_xcm2 = np.arange(len(comprimido2[0]))
-vetor_ycm2 = np.arange(len((comprimido2.transpose())[0]))
-contador_cm2 = 0
-for x in vetor_xcm2:
-    for y in vetor_ycm2:
-        if comprimido2[y,x] > 180:
-            contador_cm2 = contador_cm2+1
-print("Comprimido2 =")
-print(contador_cm2)
-
-hist_fullcm1 = cv2.calcHist([comprimido1],[0],None,[256],[0,256])
-hist_fullcm2 = cv2.calcHist([comprimido2],[0],None,[256],[0,256])
+####################################################################################################
+#Corigindo o angulo da embalagem
 
 area_angulo = im[25:775, 25:300]
 
@@ -99,13 +87,17 @@ angulo = detecta_angulo(area_angulo,20)
 rows,cols = im.shape
 M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),angulo,1)
 rotacao_corrigida = cv2.warpAffine(im,M,(cols,rows))
+rotacao_corrigida_color = cv2.warpAffine(im_color,M,(cols,rows))
 
-
+#####################################################################################################
+#Detecta ponto de referencia (canto superior esquerdo) da embalagem
 area_borda_lateral = rotacao_corrigida[25:775, 25:300]
 
 borda_lateral = detecta_1a_borda(area_borda_lateral,20)
 real_borda_lateral = (borda_lateral[0]+25,borda_lateral[1]+25)
 rotacao_corrigida[real_borda_lateral[0],real_borda_lateral[1]] = 255
+
+
 
 
 area_borda_sup = rotacao_corrigida[25:350,25:575].transpose()
@@ -115,38 +107,135 @@ rotacao_corrigida[real_borda_sup[0],real_borda_sup[1]] = 255
 
 canto_ref = (real_borda_sup[0],real_borda_lateral[1]) # Referencia Sample = 95,155
 rotacao_corrigida[canto_ref[0],canto_ref[1]] = 255
-
+#######################################################################################################
+#Definir variaveis de ajuste q serão aplicadas sobre as proximas "ferramentas" 
 ajusteX = canto_ref[0]-95
 ajusteY = canto_ref[1]-155 
-
+#######################################################################################################
+#Comprimido 1
 start_point = (170+ajusteY, 120+ajusteX)
 end_point = (240+ajusteY,230+ajusteX)
-color = 255
-thickness = 2
-# Draw a rectangle with blue line borders of thickness of 2 px
-rotacao_corrigida = cv2.rectangle(rotacao_corrigida, start_point, end_point, color, thickness)
 
+comprimido1 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido1,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 2
+start_point = (280+ajusteY, 110+ajusteX)
+end_point = (350+ajusteY,230+ajusteX)
 
+comprimido2 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido2,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 3
+start_point = (380+ajusteY, 110+ajusteX)
+end_point = (450+ajusteY,230+ajusteX)
 
+comprimido3 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido3,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 4
+start_point = (225+ajusteY, 230+ajusteX)
+end_point = (295+ajusteY,340+ajusteX)
 
+comprimido4 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido4,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 5
+start_point = (325+ajusteY, 230+ajusteX)
+end_point = (395+ajusteY,340+ajusteX)
 
-plt.subplot(2,1,1)
-plt.plot(hist_fullcm1)
-plt.title('HistogramaCM1')
-plt.subplot(2,1,2)
-plt.plot(hist_fullcm2)
-plt.title('HistogramaCM2')
+comprimido5 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido5,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 6
+start_point = (225+ajusteY, 360+ajusteX)
+end_point = (295+ajusteY,470+ajusteX)
 
+comprimido6 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido6,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 7
+start_point = (325+ajusteY, 360+ajusteX)
+end_point = (395+ajusteY,470+ajusteX)
 
+comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido7,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 8
+start_point = (170+ajusteY, 470+ajusteX)
+end_point = (240+ajusteY,590+ajusteX)
 
+comprimido8 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido7,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 9
+start_point = (270+ajusteY, 470+ajusteX)
+end_point = (340+ajusteY,590+ajusteX)
 
+comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido7,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
+#Comprimido 10
+start_point = (370+ajusteY, 470+ajusteX)
+end_point = (440+ajusteY,590+ajusteX)
 
+comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+presente = verificar_comprimido(comprimido7,2000,180)
+if presente == 1:
+    color = verde
+else:
+    color = vermelho
+rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+#######################################################################################################
 
-plt.show()
-cv2.imshow("Sample", im)
-cv2.imshow("Area_borda_sup", area_borda_sup)
-cv2.imshow("Comprimido2", comprimido2)
+cv2.imshow("Imagem_inicial", im)
 cv2.imshow("Rotacao corrigida", rotacao_corrigida)
+cv2.imshow("Resultado", rotacao_corrigida_color)
 
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
