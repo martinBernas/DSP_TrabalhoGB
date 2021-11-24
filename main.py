@@ -60,16 +60,17 @@ def verificar_comprimido(comprimido,contagem_minima,limiar_cor):
                 return 1
             
     return 0
+arquivos = ('Image2.jpeg','Image3.jpeg','Image4.jpeg','Image5.jpeg','Image6.jpeg','Image7.jpeg','Image8.jpeg','Image9.jpeg','Image1.jpeg')
+for arquivo in arquivos:
+    vermelho = (0,0,255);
+    verde = (0,255,0);
 
-vermelho = (0,0,255);
-verde = (0,255,0);
-arquivo = 'Image6.jpeg'
-im = cv2.imread(arquivo,0)
-im_color = cv2.imread(arquivo)
+    im = cv2.imread(arquivo,0)
+    im_color = cv2.imread(arquivo)
 
-height, width = im.shape[:2]
-im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
-im_color = cv2.resize(im_color,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
+    height, width = im.shape[:2]
+    im = cv2.resize(im,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
+    im_color = cv2.resize(im_color,(int(width/2),int(height/2)),interpolation = cv2.INTER_CUBIC)
 
 #imgray = cv2.cvtColor(im,cv2.COLOR_BGR2GRAY)
 #ret,thresh = cv2.threshold(imgray,127,255,0)
@@ -80,162 +81,164 @@ im_color = cv2.resize(im_color,(int(width/2),int(height/2)),interpolation = cv2.
 ####################################################################################################
 #Corigindo o angulo da embalagem
 
-area_angulo = im[25:775, 25:300]
+    area_angulo = im[25:775, 25:300]
 
-angulo = detecta_angulo(area_angulo,20)
+    angulo = detecta_angulo(area_angulo,20)
 
-rows,cols = im.shape
-M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),angulo,1)
-rotacao_corrigida = cv2.warpAffine(im,M,(cols,rows))
-rotacao_corrigida_color = cv2.warpAffine(im_color,M,(cols,rows))
+    rows,cols = im.shape
+    M = cv2.getRotationMatrix2D(((cols-1)/2.0,(rows-1)/2.0),angulo,1)
+    rotacao_corrigida = cv2.warpAffine(im,M,(cols,rows))
+    rotacao_corrigida_color = cv2.warpAffine(im_color,M,(cols,rows))
 
 #####################################################################################################
 #Detecta ponto de referencia (canto superior esquerdo) da embalagem
-area_borda_lateral = rotacao_corrigida[25:775, 25:300]
+    area_borda_lateral = rotacao_corrigida[25:775, 25:300]
 
-borda_lateral = detecta_1a_borda(area_borda_lateral,20)
-real_borda_lateral = (borda_lateral[0]+25,borda_lateral[1]+25)
-rotacao_corrigida[real_borda_lateral[0],real_borda_lateral[1]] = 255
-
-
+    borda_lateral = detecta_1a_borda(area_borda_lateral,20)
+    real_borda_lateral = (borda_lateral[0]+25,borda_lateral[1]+25)
+    rotacao_corrigida[real_borda_lateral[0],real_borda_lateral[1]] = 255
 
 
-area_borda_sup = rotacao_corrigida[25:350,25:575].transpose()
-borda_sup = detecta_1a_borda(area_borda_sup,20)
-real_borda_sup = ( borda_sup[1]+25 , borda_sup[0]+25 )
-rotacao_corrigida[real_borda_sup[0],real_borda_sup[1]] = 255
 
-canto_ref = (real_borda_sup[0],real_borda_lateral[1]) # Referencia Sample = 95,155
-rotacao_corrigida[canto_ref[0],canto_ref[1]] = 255
+
+    area_borda_sup = rotacao_corrigida[25:350,25:575].transpose()
+    borda_sup = detecta_1a_borda(area_borda_sup,20)
+    real_borda_sup = ( borda_sup[1]+25 , borda_sup[0]+25 )
+    rotacao_corrigida[real_borda_sup[0],real_borda_sup[1]] = 255
+
+    canto_ref = (real_borda_sup[0],real_borda_lateral[1]) # Referencia Sample = 95,155
+    rotacao_corrigida[canto_ref[0],canto_ref[1]] = 255
 #######################################################################################################
 #Definir variaveis de ajuste q serão aplicadas sobre as proximas "ferramentas" 
-ajusteX = canto_ref[0]-95
-ajusteY = canto_ref[1]-155 
+    ajusteX = canto_ref[0]-95
+    ajusteY = canto_ref[1]-155 
 #######################################################################################################
 #Comprimido 1
-start_point = (170+ajusteY, 120+ajusteX)
-end_point = (240+ajusteY,230+ajusteX)
+    start_point = (170+ajusteY, 120+ajusteX)
+    end_point = (240+ajusteY,230+ajusteX)
 
-comprimido1 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido1,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido1 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido1,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 2
-start_point = (280+ajusteY, 110+ajusteX)
-end_point = (350+ajusteY,230+ajusteX)
+    start_point = (280+ajusteY, 110+ajusteX)
+    end_point = (350+ajusteY,230+ajusteX)
 
-comprimido2 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido2,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido2 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido2,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 3
-start_point = (380+ajusteY, 110+ajusteX)
-end_point = (450+ajusteY,230+ajusteX)
+    start_point = (380+ajusteY, 110+ajusteX)
+    end_point = (450+ajusteY,230+ajusteX)
 
-comprimido3 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido3,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido3 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido3,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 4
-start_point = (225+ajusteY, 230+ajusteX)
-end_point = (295+ajusteY,340+ajusteX)
+    start_point = (225+ajusteY, 230+ajusteX)
+    end_point = (295+ajusteY,340+ajusteX)
 
-comprimido4 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido4,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido4 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido4,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 5
-start_point = (325+ajusteY, 230+ajusteX)
-end_point = (395+ajusteY,340+ajusteX)
+    start_point = (325+ajusteY, 230+ajusteX)
+    end_point = (395+ajusteY,340+ajusteX)
 
-comprimido5 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido5,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido5 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido5,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 6
-start_point = (225+ajusteY, 360+ajusteX)
-end_point = (295+ajusteY,470+ajusteX)
+    start_point = (225+ajusteY, 360+ajusteX)
+    end_point = (295+ajusteY,470+ajusteX)
 
-comprimido6 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido6,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido6 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido6,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 7
-start_point = (325+ajusteY, 360+ajusteX)
-end_point = (395+ajusteY,470+ajusteX)
-
-comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido7,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    start_point = (325+ajusteY, 360+ajusteX)
+    end_point = (395+ajusteY,470+ajusteX)
+    
+    comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido7,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 8
-start_point = (170+ajusteY, 470+ajusteX)
-end_point = (240+ajusteY,590+ajusteX)
+    start_point = (170+ajusteY, 470+ajusteX)
+    end_point = (240+ajusteY,590+ajusteX)
 
-comprimido8 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido7,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido8 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido7,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 9
-start_point = (270+ajusteY, 470+ajusteX)
-end_point = (340+ajusteY,590+ajusteX)
+    start_point = (270+ajusteY, 470+ajusteX)
+    end_point = (340+ajusteY,590+ajusteX)
 
-comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido7,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido7,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 #Comprimido 10
-start_point = (370+ajusteY, 470+ajusteX)
-end_point = (440+ajusteY,590+ajusteX)
+    start_point = (370+ajusteY, 470+ajusteX)
+    end_point = (440+ajusteY,590+ajusteX)
 
-comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
-presente = verificar_comprimido(comprimido7,2000,180)
-if presente == 1:
-    color = verde
-else:
-    color = vermelho
-rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
+    comprimido7 = rotacao_corrigida[start_point[1]:end_point[1],start_point[0]:end_point[0]]
+    presente = verificar_comprimido(comprimido7,2000,180)
+    if presente == 1:
+        color = verde
+    else:
+        color = vermelho
+    rotacao_corrigida_color = desenha_retangulo(rotacao_corrigida_color,start_point,end_point,color)
 #######################################################################################################
 
-cv2.imshow("Imagem_inicial", im)
-cv2.imshow("Rotacao corrigida", rotacao_corrigida)
-cv2.imshow("Resultado", rotacao_corrigida_color)
+    cv2.imshow("Imagem_inicial", im)
+    cv2.imshow("Rotacao corrigida", rotacao_corrigida)
+    cv2.imshow("Resultado", rotacao_corrigida_color)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
